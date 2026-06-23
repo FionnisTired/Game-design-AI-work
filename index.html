@@ -1,0 +1,740 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Vine Nocturne</title>
+  <style>
+    :root {
+      --deep: #08120f;
+      --panel: rgba(11, 24, 20, 0.76);
+      --cream: #f5ead2;
+      --amber: #f1c978;
+      --teal: #9ad8ca;
+      --rose: #e7a4b7;
+      color: var(--cream);
+      font-family: "Segoe UI", system-ui, -apple-system, BlinkMacSystemFont, sans-serif;
+      background: var(--deep);
+    }
+
+    * { box-sizing: border-box; }
+
+    html, body {
+      min-height: 100%;
+      margin: 0;
+      overflow-x: hidden;
+    }
+
+    body {
+      display: grid;
+      place-items: center;
+      padding: 18px;
+      background:
+        radial-gradient(circle at 18% 18%, rgba(154, 216, 202, 0.18), transparent 28rem),
+        radial-gradient(circle at 78% 9%, rgba(231, 164, 183, 0.13), transparent 22rem),
+        linear-gradient(160deg, #08120f 0%, #142720 48%, #0a1513 100%);
+    }
+
+    button {
+      color: inherit;
+      font: inherit;
+    }
+
+    .game-shell {
+      position: relative;
+      width: min(1180px, 100%);
+      min-height: min(780px, calc(100vh - 36px));
+      overflow: hidden;
+      isolation: isolate;
+      border: 1px solid rgba(217, 238, 191, 0.28);
+      border-radius: 8px;
+      background: #0b1511;
+      box-shadow: 0 28px 90px rgba(0, 0, 0, 0.5);
+    }
+
+    .stage-art {
+      position: absolute;
+      inset: 0;
+      z-index: -3;
+      background:
+        linear-gradient(180deg, rgba(4, 12, 10, 0.08), rgba(4, 12, 10, 0.68)),
+        url("assets/bug-band.png") center / cover no-repeat;
+      transform: scale(1.02);
+    }
+
+    .stage-mist {
+      position: absolute;
+      inset: 0;
+      z-index: -2;
+      pointer-events: none;
+      background:
+        linear-gradient(90deg, rgba(5, 14, 12, 0.78), transparent 24%, transparent 76%, rgba(5, 14, 12, 0.78)),
+        radial-gradient(ellipse at 50% 88%, rgba(8, 18, 15, 0.72), transparent 38rem);
+    }
+
+    .vine-frame {
+      position: absolute;
+      inset: 0;
+      z-index: 4;
+      pointer-events: none;
+    }
+
+    .vine {
+      position: absolute;
+      width: 140px;
+      height: 100%;
+      opacity: 0.9;
+    }
+
+    .vine::before,
+    .vine::after {
+      content: "";
+      position: absolute;
+      top: -5%;
+      width: 80px;
+      height: 112%;
+      border-radius: 50%;
+      border: solid rgba(133, 185, 116, 0.62);
+      filter: drop-shadow(0 3px 7px rgba(0, 0, 0, 0.28));
+    }
+
+    .vine.left { left: -54px; }
+    .vine.right { right: -54px; transform: scaleX(-1); }
+    .vine.left::before, .vine.right::before { left: 22px; border-width: 0 6px 0 0; transform: rotate(7deg); }
+    .vine.left::after, .vine.right::after { left: 58px; border-width: 0 0 0 4px; transform: rotate(-9deg); opacity: 0.66; }
+
+    .flower {
+      position: absolute;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background:
+        radial-gradient(circle, #f7e8a0 0 18%, transparent 20%),
+        radial-gradient(circle at 50% 0%, var(--rose) 0 28%, transparent 30%),
+        radial-gradient(circle at 50% 100%, #f3bfd0 0 28%, transparent 30%),
+        radial-gradient(circle at 0% 50%, #d98ca4 0 28%, transparent 30%),
+        radial-gradient(circle at 100% 50%, #efb3c3 0 28%, transparent 30%);
+      filter: drop-shadow(0 2px 5px rgba(0, 0, 0, 0.34));
+    }
+
+    .flower.f1 { left: 22px; top: 68px; }
+    .flower.f2 { left: 42px; bottom: 92px; transform: scale(0.78) rotate(22deg); }
+    .flower.f3 { right: 34px; top: 112px; transform: scale(0.86) rotate(-18deg); }
+    .flower.f4 { right: 48px; bottom: 64px; transform: scale(1.08) rotate(12deg); }
+
+    .topbar {
+      position: relative;
+      z-index: 2;
+      display: flex;
+      align-items: flex-start;
+      justify-content: space-between;
+      gap: 16px;
+      padding: 18px clamp(18px, 4vw, 48px) 0;
+    }
+
+    .title h1 {
+      margin: 0;
+      font-size: clamp(1.4rem, 3vw, 2.5rem);
+      font-weight: 650;
+      text-shadow: 0 3px 14px rgba(0, 0, 0, 0.58);
+    }
+
+    .title p {
+      max-width: 42rem;
+      margin: 3px 0 0;
+      color: rgba(245, 234, 210, 0.76);
+      line-height: 1.4;
+    }
+
+    .controls {
+      display: flex;
+      flex-wrap: wrap;
+      justify-content: flex-end;
+      gap: 10px;
+    }
+
+    .leaf-button,
+    .mode-button,
+    .song-button,
+    .difficulty-button,
+    .option-button,
+    .key-button {
+      border: 1px solid rgba(218, 237, 178, 0.34);
+      border-radius: 8px;
+      background: rgba(16, 37, 30, 0.78);
+      cursor: pointer;
+      transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+    }
+
+    .leaf-button,
+    .mode-button {
+      min-height: 42px;
+      padding: 9px 14px;
+      box-shadow: 0 7px 18px rgba(0, 0, 0, 0.22);
+    }
+
+    .leaf-button:hover,
+    .mode-button:hover,
+    .song-button:hover,
+    .difficulty-button:hover,
+    .option-button:hover,
+    .key-button:hover,
+    .leaf-button:focus-visible,
+    .mode-button:focus-visible,
+    .song-button:focus-visible,
+    .difficulty-button:focus-visible,
+    .option-button:focus-visible,
+    .key-button:focus-visible {
+      transform: translateY(-1px);
+      border-color: rgba(241, 201, 120, 0.76);
+      outline: none;
+    }
+
+    .leaf-button.primary {
+      color: #fff8dc;
+      font-weight: 700;
+      background: linear-gradient(180deg, rgba(91, 128, 78, 0.95), rgba(36, 82, 64, 0.94));
+    }
+
+    .mode-group {
+      display: inline-flex;
+      overflow: hidden;
+      border: 1px solid rgba(218, 237, 178, 0.28);
+      border-radius: 8px;
+      background: rgba(9, 21, 18, 0.64);
+    }
+
+    .mode-button {
+      border: 0;
+      border-radius: 0;
+      background: transparent;
+      box-shadow: none;
+      padding-inline: 11px;
+    }
+
+    .active {
+      background: rgba(48, 82, 62, 0.86);
+    }
+
+    .mode-button.active {
+      color: #fff2bd;
+      background: rgba(241, 201, 120, 0.2);
+    }
+
+    .playfield {
+      position: relative;
+      z-index: 1;
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) minmax(290px, 410px);
+      gap: clamp(16px, 3vw, 38px);
+      min-height: 640px;
+      padding: clamp(18px, 3.8vw, 48px);
+      padding-top: clamp(22px, 4vw, 52px);
+    }
+
+    .rhythm-panel {
+      position: relative;
+      align-self: end;
+      justify-self: center;
+      width: min(520px, 100%);
+      height: clamp(430px, 67vh, 570px);
+      overflow: hidden;
+      border: 1px solid rgba(216, 238, 188, 0.24);
+      border-radius: 8px;
+      background:
+        linear-gradient(180deg, rgba(9, 18, 15, 0.22), rgba(9, 18, 15, 0.76)),
+        repeating-linear-gradient(90deg, rgba(255, 255, 255, 0.04) 0 1px, transparent 1px 25%);
+      box-shadow: inset 0 0 46px rgba(2, 8, 7, 0.58), 0 18px 50px rgba(0, 0, 0, 0.3);
+    }
+
+    .lane {
+      position: absolute;
+      top: 0;
+      bottom: 0;
+      width: 25%;
+      border-right: 1px solid rgba(255, 255, 255, 0.07);
+    }
+
+    .lane:nth-child(1) { left: 0; }
+    .lane:nth-child(2) { left: 25%; }
+    .lane:nth-child(3) { left: 50%; }
+    .lane:nth-child(4) { left: 75%; border-right: 0; }
+
+    .lane-label {
+      position: absolute;
+      top: 16px;
+      left: 50%;
+      min-width: 50px;
+      padding: 7px 9px;
+      translate: -50% 0;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 8px;
+      background: rgba(6, 15, 12, 0.58);
+      color: rgba(245, 234, 210, 0.78);
+      text-align: center;
+      font-weight: 700;
+    }
+
+    .hit-line {
+      position: absolute;
+      right: 0;
+      bottom: 84px;
+      left: 0;
+      height: 2px;
+      background: linear-gradient(90deg, transparent, rgba(241, 201, 120, 0.92), transparent);
+      box-shadow: 0 0 18px rgba(241, 201, 120, 0.52);
+    }
+
+    .hit-pads {
+      position: absolute;
+      right: 0;
+      bottom: 28px;
+      left: 0;
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+      height: 72px;
+      padding: 0 12px;
+    }
+
+    .pad {
+      display: grid;
+      place-items: center;
+      border: 1px solid rgba(221, 244, 187, 0.26);
+      border-radius: 8px;
+      background:
+        radial-gradient(circle at 50% 18%, rgba(245, 234, 210, 0.2), transparent 34px),
+        linear-gradient(180deg, rgba(55, 102, 68, 0.64), rgba(21, 47, 38, 0.78));
+      color: rgba(255, 248, 220, 0.9);
+      font-size: 1.2rem;
+      font-weight: 750;
+      cursor: pointer;
+      user-select: none;
+    }
+
+    .pad.active {
+      transform: translateY(4px) scale(0.98);
+      border-color: rgba(241, 201, 120, 0.92);
+      filter: brightness(1.24);
+    }
+
+    .mobile-play .hit-pads { height: 104px; bottom: 18px; gap: 10px; }
+    .mobile-play .pad { font-size: 1.55rem; }
+    .mobile-play .hit-line { bottom: 120px; }
+
+    .note {
+      position: absolute;
+      top: var(--y);
+      left: var(--x);
+      width: min(68px, 18%);
+      height: 34px;
+      translate: -50% -50%;
+      border: 1px solid rgba(255, 255, 255, 0.32);
+      border-radius: 999px 999px 999px 16px;
+      background:
+        radial-gradient(circle at 34% 32%, rgba(255, 255, 255, 0.6), transparent 15%),
+        linear-gradient(145deg, var(--note1), var(--note2));
+      box-shadow: 0 6px 16px rgba(0, 0, 0, 0.24), 0 0 18px var(--glow);
+      transform: rotate(var(--tilt));
+    }
+
+    .note::before {
+      content: "";
+      position: absolute;
+      bottom: 4px;
+      left: 7px;
+      width: 26px;
+      height: 10px;
+      border-bottom: 2px solid rgba(66, 91, 50, 0.52);
+      border-radius: 50%;
+      transform: rotate(-18deg);
+    }
+
+    .note.hit { animation: bloom 280ms ease forwards; }
+
+    @keyframes bloom {
+      to { opacity: 0; transform: rotate(var(--tilt)) scale(1.5); }
+    }
+
+    .feedback {
+      position: absolute;
+      bottom: 134px;
+      left: 50%;
+      min-width: 150px;
+      translate: -50% 0;
+      color: #fff3bb;
+      text-align: center;
+      text-shadow: 0 3px 10px #000;
+      font-weight: 800;
+      opacity: 0;
+      transform: translateY(10px);
+      transition: opacity 160ms ease, transform 160ms ease;
+      pointer-events: none;
+    }
+
+    .feedback.show { opacity: 1; transform: translateY(0); }
+
+    .side-panel {
+      display: grid;
+      align-self: end;
+      max-width: 410px;
+      gap: 12px;
+    }
+
+    .stats,
+    .band-card {
+      border: 1px solid rgba(216, 238, 188, 0.24);
+      border-radius: 8px;
+      background: var(--panel);
+      box-shadow: 0 14px 36px rgba(0, 0, 0, 0.26);
+      backdrop-filter: blur(8px);
+    }
+
+    .stats {
+      display: grid;
+      grid-template-columns: repeat(3, 1fr);
+      overflow: hidden;
+    }
+
+    .stat {
+      min-width: 0;
+      padding: 14px 12px;
+      border-right: 1px solid rgba(255, 255, 255, 0.08);
+    }
+
+    .stat:last-child { border-right: 0; }
+
+    .stat span {
+      display: block;
+      color: rgba(245, 234, 210, 0.66);
+      font-size: 0.76rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .stat strong {
+      display: block;
+      margin-top: 4px;
+      color: #fff6cf;
+      font-size: clamp(1.2rem, 3vw, 1.85rem);
+      white-space: nowrap;
+    }
+
+    .band-card { padding: 18px; }
+    .band-card h2, .scoreboard h3 { margin: 0 0 12px; font-size: 1.05rem; }
+
+    .bug-list {
+      display: grid;
+      gap: 10px;
+      margin: 0;
+      padding: 0;
+      list-style: none;
+    }
+
+    .bug {
+      display: grid;
+      grid-template-columns: 34px 1fr auto;
+      align-items: center;
+      gap: 10px;
+      min-height: 44px;
+      color: rgba(245, 234, 210, 0.86);
+    }
+
+    .bug-icon {
+      display: grid;
+      place-items: center;
+      width: 34px;
+      height: 34px;
+      border: 1px solid rgba(255, 255, 255, 0.16);
+      border-radius: 50%;
+      background: linear-gradient(150deg, rgba(241, 201, 120, 0.32), rgba(154, 216, 202, 0.22));
+    }
+
+    .bug small { display: block; color: rgba(245, 234, 210, 0.56); }
+
+    .bug kbd {
+      display: grid;
+      place-items: center;
+      min-width: 30px;
+      min-height: 30px;
+      border: 1px solid rgba(255, 255, 255, 0.18);
+      border-radius: 8px;
+      background: rgba(4, 13, 11, 0.54);
+      color: rgba(255, 248, 220, 0.88);
+      font: inherit;
+      font-weight: 800;
+    }
+
+    .message {
+      min-height: 3.2em;
+      margin-top: 14px;
+      color: rgba(245, 234, 210, 0.78);
+      line-height: 1.5;
+    }
+
+    .progress {
+      height: 8px;
+      margin-top: 16px;
+      overflow: hidden;
+      border-radius: 999px;
+      background: rgba(255, 255, 255, 0.1);
+    }
+
+    .progress-fill {
+      width: 0%;
+      height: 100%;
+      border-radius: inherit;
+      background: linear-gradient(90deg, var(--teal), var(--amber), var(--rose));
+    }
+
+    .scoreboard {
+      margin-top: 14px;
+      padding-top: 12px;
+      border-top: 1px solid rgba(255, 255, 255, 0.1);
+    }
+
+    .score-row {
+      display: grid;
+      grid-template-columns: 1fr auto;
+      gap: 10px;
+      padding: 6px 0;
+      border-top: 1px solid rgba(255, 255, 255, 0.05);
+      color: rgba(245, 234, 210, 0.72);
+      font-size: 0.88rem;
+    }
+
+    .score-row:first-of-type { border-top: 0; }
+    .score-row strong { color: #fff6cf; }
+
+    .start-screen {
+      position: absolute;
+      inset: 0;
+      z-index: 5;
+      display: grid;
+      place-items: center;
+      padding: 24px;
+      background:
+        radial-gradient(circle at 50% 44%, rgba(10, 20, 17, 0.4), rgba(7, 14, 12, 0.9) 68%),
+        rgba(5, 11, 9, 0.34);
+      backdrop-filter: blur(2px);
+    }
+
+    .start-box {
+      width: min(800px, 100%);
+      max-height: min(840px, calc(100vh - 48px));
+      overflow: auto;
+      padding: clamp(20px, 4vw, 32px);
+      border: 1px solid rgba(225, 242, 190, 0.3);
+      border-radius: 8px;
+      background: rgba(9, 22, 18, 0.86);
+      box-shadow: 0 24px 70px rgba(0, 0, 0, 0.42);
+    }
+
+    .start-box h2 {
+      margin: 0 0 8px;
+      font-size: clamp(1.45rem, 4vw, 2.35rem);
+    }
+
+    .start-box p {
+      margin: 0 0 18px;
+      color: rgba(245, 234, 210, 0.78);
+      line-height: 1.55;
+    }
+
+    .select-row {
+      display: grid;
+      gap: 10px;
+      margin: 18px 0;
+    }
+
+    .select-label {
+      color: rgba(245, 234, 210, 0.68);
+      font-size: 0.78rem;
+      font-weight: 700;
+      letter-spacing: 0.08em;
+      text-transform: uppercase;
+    }
+
+    .song-list,
+    .difficulty-list,
+    .option-list,
+    .key-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
+      gap: 8px;
+    }
+
+    .option-list,
+    .key-grid {
+      grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    }
+
+    .song-button,
+    .difficulty-button,
+    .option-button,
+    .key-button {
+      min-height: 74px;
+      padding: 10px 12px;
+      text-align: left;
+    }
+
+    .song-button { min-height: 104px; }
+
+    .song-button strong,
+    .song-button span,
+    .song-button small,
+    .difficulty-button strong,
+    .difficulty-button small,
+    .option-button strong,
+    .option-button small,
+    .key-button strong,
+    .key-button small {
+      display: block;
+    }
+
+    .song-button strong { color: #fff6cf; line-height: 1.15; }
+    .song-button span, .song-button small, .difficulty-button small, .option-button small, .key-button small {
+      margin-top: 5px;
+      color: rgba(245, 234, 210, 0.66);
+      font-size: 0.78rem;
+      line-height: 1.25;
+    }
+
+    .mini-score {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      color: rgba(245, 234, 210, 0.72);
+      font-size: 0.86rem;
+    }
+
+    .mini-score strong { color: #fff6cf; }
+    .hidden { display: none; }
+
+    @media (max-width: 840px) {
+      body { padding: 0; }
+      .game-shell { min-height: 100vh; border: 0; border-radius: 0; }
+      .topbar { flex-direction: column; }
+      .controls { justify-content: flex-start; }
+      .playfield { grid-template-columns: 1fr; min-height: auto; padding-inline: 16px; }
+      .rhythm-panel { width: min(500px, 100%); height: min(560px, 62vh); }
+      .side-panel { max-width: none; }
+      .vine { opacity: 0.52; }
+    }
+
+    @media (max-width: 460px) {
+      .stats { grid-template-columns: 1fr 1fr; }
+      .stat:last-child { grid-column: 1 / -1; border-top: 1px solid rgba(255, 255, 255, 0.08); }
+      .bug { grid-template-columns: 30px 1fr auto; }
+      .bug-icon { width: 30px; height: 30px; }
+      .hit-pads { gap: 6px; padding-inline: 8px; }
+      .song-list, .difficulty-list, .option-list, .key-grid { grid-template-columns: 1fr; }
+    }
+  </style>
+</head>
+<body>
+  <main class="game-shell" aria-label="Vine Nocturne rhythm game">
+    <div class="stage-art" aria-hidden="true"></div>
+    <div class="stage-mist" aria-hidden="true"></div>
+    <div class="vine-frame" aria-hidden="true">
+      <div class="vine left"></div>
+      <div class="vine right"></div>
+      <div class="flower f1"></div>
+      <div class="flower f2"></div>
+      <div class="flower f3"></div>
+      <div class="flower f4"></div>
+    </div>
+
+    <header class="topbar">
+      <div class="title">
+        <h1>Vine Nocturne</h1>
+        <p>A slow rhythm piece for a tiny garden ensemble. Choose a song, tune the challenge, and follow the falling leaves.</p>
+      </div>
+      <div class="controls" aria-label="Game controls">
+        <div class="mode-group" aria-label="Difficulty">
+          <button class="mode-button" data-difficulty="sprout" type="button">Sprout</button>
+          <button class="mode-button active" data-difficulty="easy" type="button">Easy</button>
+          <button class="mode-button" data-difficulty="normal" type="button">Normal</button>
+          <button class="mode-button" data-difficulty="hard" type="button">Hard</button>
+          <button class="mode-button" data-difficulty="wild" type="button">Wild</button>
+        </div>
+        <button id="restart" class="leaf-button" type="button">Restart</button>
+        <button id="sound" class="leaf-button" type="button" aria-pressed="true">Sound On</button>
+      </div>
+    </header>
+
+    <section class="playfield">
+      <div id="rhythmPanel" class="rhythm-panel" aria-label="Rhythm lanes">
+        <div class="lane"><div class="lane-label">A</div></div>
+        <div class="lane"><div class="lane-label">S</div></div>
+        <div class="lane"><div class="lane-label">D</div></div>
+        <div class="lane"><div class="lane-label">F</div></div>
+        <div class="hit-line" aria-hidden="true"></div>
+        <div id="notes"></div>
+        <div id="feedback" class="feedback">Gentle</div>
+        <div class="hit-pads">
+          <button class="pad" data-lane="0" type="button" aria-label="Seedpod drum lane">A</button>
+          <button class="pad" data-lane="1" type="button" aria-label="Reed flute lane">S</button>
+          <button class="pad" data-lane="2" type="button" aria-label="Petal harp lane">D</button>
+          <button class="pad" data-lane="3" type="button" aria-label="Vine cello lane">F</button>
+        </div>
+      </div>
+
+      <aside class="side-panel">
+        <div class="stats" aria-label="Score">
+          <div class="stat"><span>Glow</span><strong id="score">0</strong></div>
+          <div class="stat"><span>Chain</span><strong id="combo">0</strong></div>
+          <div class="stat"><span>Garden</span><strong id="accuracy">100%</strong></div>
+        </div>
+
+        <div class="band-card">
+          <h2>Garden Band</h2>
+          <ul class="bug-list">
+            <li class="bug"><span class="bug-icon">o</span><span>Beetle drummer<small>seedpod pulse</small></span><kbd>A</kbd></li>
+            <li class="bug"><span class="bug-icon">~</span><span>Cricket flutist<small>reed breath</small></span><kbd>S</kbd></li>
+            <li class="bug"><span class="bug-icon">*</span><span>Moth harpist<small>petal shimmer</small></span><kbd>D</kbd></li>
+            <li class="bug"><span class="bug-icon">)</span><span>Mantis cellist<small>vine bow</small></span><kbd>F</kbd></li>
+          </ul>
+          <p id="message" class="message">Choose a song, then use A S D F or tap the pads.</p>
+          <div class="progress" aria-label="Song progress"><div id="progressFill" class="progress-fill"></div></div>
+          <div class="scoreboard">
+            <h3>High Scores</h3>
+            <div id="scoreboardRows"></div>
+          </div>
+        </div>
+      </aside>
+    </section>
+
+    <div id="startScreen" class="start-screen">
+      <div class="start-box">
+        <h2>Choose a garden song</h2>
+        <p>Pick one piece for the bug band, then choose how quickly and densely the leaves should fall.</p>
+        <div class="select-row">
+          <div class="select-label">Songs</div>
+          <div id="songList" class="song-list" aria-label="Song selection"></div>
+        </div>
+        <div class="select-row">
+          <div class="select-label">Difficulty</div>
+          <div id="difficultyList" class="difficulty-list" aria-label="Difficulty selection"></div>
+        </div>
+        <div class="select-row">
+          <div class="select-label">Challenge Options</div>
+          <div id="optionList" class="option-list" aria-label="Challenge option toggles"></div>
+        </div>
+        <div class="select-row">
+          <div class="select-label">Controls</div>
+          <div id="keyGrid" class="key-grid" aria-label="Keyboard controls"></div>
+          <div class="mini-score"><span id="keyHint">Select a key tile, then press a new key.</span></div>
+        </div>
+        <div class="select-row">
+          <div class="select-label">Current Best</div>
+          <div id="selectedBest" class="mini-score"></div>
+        </div>
+        <button id="start" class="leaf-button primary" type="button">Start Song</button>
+      </div>
+    </div>
+  </main>
+  <script src="game.js"></script>
+</body>
+</html>
